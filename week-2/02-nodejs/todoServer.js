@@ -39,11 +39,94 @@
 
   Testing the server - run `npm run test-todoServer` command in terminal
  */
-  const express = require('express');
-  const bodyParser = require('body-parser');
-  
-  const app = express();
-  
-  app.use(bodyParser.json());
-  
-  module.exports = app;
+const express = require("express");
+const bodyParser = require("body-parser");
+const fs = require("fs");
+const app = express();
+const path = require("path");
+
+app.use(bodyParser.json());
+
+// let toDoList = [];
+
+const getToDos = () => {
+  console.log("Reading file");
+  let str = fs.readFileSync(path.join(__dirname, "todos.json"), "utf8");
+  let toDoList = JSON.parse(str);
+
+  console.log("came here");
+  return toDoList;
+};
+const findIndex = (toDoList, id) => {
+  return toDoList.findIndex((toDo) => toDo.id === id);
+};
+
+const writeToDo = (toDoList) => {
+  console.log("Writing new list ", toDoList);
+  fs.writeFileSync(
+    path.join(__dirname, "todos.json"),
+
+    JSON.stringify(toDoList),
+    (err) => {
+      if (err) throw err;
+    }
+  );
+};
+
+app.get("/todos", (req, res) => {
+  const toDoList = getToDos();
+  res.json(toDoList);
+});
+
+app.get("/todos/:id", (req, res) => {
+  let toDoList = getToDos();
+  let index = findIndex(toDoList, parseInt(req.params.id));
+
+  if (index === -1) res.status(404).send("ToDo Not Found!");
+  else res.json(todoList[index]);
+});
+
+app.post("/todos", (req, res) => {
+  console.log(req.body);
+
+  let newTodo = {
+    id: Math.floor(Math.random() * 1000000),
+    title: req.body.title,
+    description: req.body.description,
+  };
+  let toDoList = getToDos();
+  toDoList.push(newTodo);
+  writeToDo(toDoList);
+
+  res.status(201).json(newTodo);
+});
+
+app.put("/todos/:id", (req, res) => {
+  let toDoList = getToDos();
+  let index = findIndex(toDoList, parseInt(req.params.id));
+  if (index === -1) {
+    res.status(404).send();
+  } else {
+    toDoList[index].title = req.body.title;
+    toDoList[index].description = req.body.description;
+    writeToDo(toDoList);
+    res.json(toDoList[index]);
+  }
+});
+app.delete("/todos/:id", (req, res) => {
+  let toDoList = getToDos();
+  let index = findIndex(toDoList, parseInt(req.params.id));
+  if (index === -1) res.status(404).send();
+  else {
+    toDoList.splice(index, 1);
+    writeToDo(toDoList);
+    res.status(200).send();
+  }
+});
+
+app.use((req, res, next) => {
+  res.status(404).send();
+});
+
+app.listen(3000);
+module.exports = app;
